@@ -1,0 +1,211 @@
+name: Deploy [Dev] Stripe Order Processing System
+
+on:
+  push:
+    branches: [develop]
+  pull_request:
+    branches: [develop]
+
+env:
+  AWS_DEFAULT_REGION: ap-northeast-1
+  TERRAFORM_VERSION: 1.3.9
+
+jobs:
+  security-scan:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  terraform-plan:
+    name: Terraform Plan
+    runs-on: ubuntu-latest
+    needs: security-scan
+    strategy:
+      matrix:
+        environment: [dev]
+        service: [1.general, 3.order-processing]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+
+      - name: Symlink variables file
+        run: |
+          cd aws/terraform/envs/${{ matrix.environment }}/${{ matrix.service }}
+          if [ ! -L _variables.tf ]; then
+            ln -sf ../_variables.tf _variables.tf
+          fi
+
+      - name: Terraform Init
+        run: |
+          cd aws/terraform/envs/${{ matrix.environment }}/${{ matrix.service }}
+          terraform init
+
+      - name: Terraform Plan
+        run: |
+          cd aws/terraform/envs/${{ matrix.environment }}/${{ matrix.service }}
+          terraform plan -var-file=../terraform.${{ matrix.environment }}.tfvars -no-color
+
+  build-lambda:
+    name: Build Lambda Functions
+    runs-on: ubuntu-latest
+    needs: terraform-plan
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Package Lambda Functions
+        run: |
+          # Create lambda deployment packages
+          mkdir -p lambda-packages
+
+          # Package webhook handler
+          cd aws/lambda-functions/webhook-handler
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt -t ./
+          fi
+          zip -r ../../../lambda-packages/webhook_handler.zip . -x "__pycache__/*" "*.pyc" "requirements.txt"
+          cd ../../..
+
+          # Package email processor
+          cd aws/lambda-functions/email-processor
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt -t ./
+          fi
+          zip -r ../../../lambda-packages/email_processor.zip . -x "__pycache__/*" "*.pyc" "requirements.txt"
+          cd ../../..
+
+          # Package inventory processor
+          cd aws/lambda-functions/inventory-processor
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt -t ./
+          fi
+          zip -r ../../../lambda-packages/inventory_processor.zip . -x "__pycache__/*" "*.pyc" "requirements.txt"
+          cd ../../..
+
+          # Package database processor
+          cd aws/lambda-functions/database-processor
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt -t ./
+          fi
+          zip -r ../../../lambda-packages/database_processor.zip . -x "__pycache__/*" "*.pyc" "requirements.txt"
+          cd ../../..
+
+          # List created packages
+          ls -la lambda-packages/
+
+      - name: Upload Lambda artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: lambda-functions
+          path: lambda-packages/
+
+  deploy:
+    name: Deploy to AWS
+    runs-on: ubuntu-latest
+    needs: [terraform-plan, build-lambda]
+    if: github.ref == 'refs/heads/main'
+    environment: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Download Lambda artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: lambda-functions
+          path: lambda-packages/
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+
+      - name: Copy Lambda packages
+        run: |
+          # Copy Lambda packages to terraform directory
+          cp lambda-packages/*.zip aws/terraform/envs/dev/3.order-processing/
+          ls -la aws/terraform/envs/dev/3.order-processing/*.zip
+
+      - name: Symlink variables files
+        run: |
+          cd aws/terraform/envs/dev/1.general
+          if [ ! -L _variables.tf ]; then
+            ln -sf ../_variables.tf _variables.tf
+          fi
+          cd ../3.order-processing
+          if [ ! -L _variables.tf ]; then
+            ln -sf ../_variables.tf _variables.tf
+          fi
+
+      - name: Deploy General Infrastructure
+        run: |
+          cd aws/terraform/envs/dev/1.general
+          terraform init
+          terraform apply -var-file=../terraform.dev.tfvars -auto-approve
+
+      - name: Deploy Order Processing System
+        run: |
+          cd aws/terraform/envs/dev/3.order-processing
+          terraform init
+          terraform apply -var-file=../terraform.dev.tfvars -auto-approve
+
+      - name: Output deployment information
+        run: |
+          cd aws/terraform/envs/dev/3.order-processing
+          echo "=== Deployment Outputs ==="
+          echo "Webhook Endpoint:" $(terraform output -raw webhook_endpoint_url || echo "N/A")
+          echo "Dashboard URL:" $(terraform output -raw cloudwatch_dashboard_url || echo "N/A")
+          echo "SNS Topic ARN:" $(terraform output -raw sns_topic_arn || echo "N/A")
+          echo "DynamoDB Orders Table:" $(terraform output -raw dynamodb_table_name || echo "N/A")
+
+      - name: Validate deployment
+        run: |
+          cd aws/terraform/envs/dev/3.order-processing
+          # Check if critical resources exist
+          aws lambda list-functions --query "Functions[?contains(FunctionName, 'my-stripe-system-dev')].FunctionName" --output table
+          aws sns list-topics --query "Topics[?contains(TopicArn, 'my-stripe-system-dev')].TopicArn" --output table
+          aws sqs list-queues --query "QueueUrls[?contains(@, 'my-stripe-system-dev')]" --output table

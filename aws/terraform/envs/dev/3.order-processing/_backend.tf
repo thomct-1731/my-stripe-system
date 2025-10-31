@@ -33,7 +33,7 @@ provider "aws" {
     tags = {
       Project     = var.project
       Environment = var.env
-      Service     = "orders"
+      Service     = "order-processing"
     }
   }
 }

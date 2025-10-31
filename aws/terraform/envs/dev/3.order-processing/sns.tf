@@ -1,11 +1,3 @@
-# module "sns_topic_orders" {
-#   source  = "git@github.com:framgia/sun-infra-iac.git//modules/sns?ref=..." # ref/version module sns
-#   name    = "${var.project}-${var.env}-orders"
-#   project = var.project
-#   env     = var.env
-# }
-
-
 ###################
 # SNS Topic for Order Events
 ###################
