@@ -2,10 +2,11 @@ name: Deploy to Staging
 
 on:
   push:
-    branches: [staging, main]
+    branches: [staging]
     paths:
       - 'aws/terraform/**'
       - 'aws/terraform-dependencies/**'
+      - '.github/workflows/**'
   workflow_dispatch:
 
 env:
@@ -25,7 +26,11 @@ jobs:
     with:
       environment: stg
       service: '1.general'
-    secrets: inherit
+      terraform-version: ${{ env.TERRAFORM_VERSION }}
+      aws-region: ${{ env.AWS_REGION }}
+    secrets:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
   plan-order-processing:
     needs: security-scan
@@ -33,12 +38,19 @@ jobs:
     with:
       environment: stg
       service: '3.order-processing'
-    secrets: inherit
+      terraform-version: ${{ env.TERRAFORM_VERSION }}
+      aws-region: ${{ env.AWS_REGION }}
+    secrets:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
   build-lambda:
     needs: [plan-general, plan-order-processing]
     if: github.event_name == 'push'
     uses: ./.github/workflows/build-lambda.yaml
+    with:
+      python-version: '3.9'
+      lambda-source-path: 'aws/terraform-dependencies/lambda-function'
 
   deploy-general:
     needs: build-lambda
@@ -47,7 +59,11 @@ jobs:
     with:
       environment: stg
       service: '1.general'
-    secrets: inherit
+      terraform-version: ${{ env.TERRAFORM_VERSION }}
+      aws-region: ${{ env.AWS_REGION }}
+    secrets:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
   deploy-order-processing:
     needs: [build-lambda, deploy-general]
@@ -56,5 +72,9 @@ jobs:
     with:
       environment: stg
       service: '3.order-processing'
+      terraform-version: ${{ env.TERRAFORM_VERSION }}
+      aws-region: ${{ env.AWS_REGION }}
       lambda-artifact-name: ${{ needs.build-lambda.outputs.artifact-name }}
-    secrets: inherit
+    secrets:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
