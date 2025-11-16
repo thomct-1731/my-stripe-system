@@ -54,8 +54,7 @@ jobs:
             -x "*.pyc" \
             -x "__pycache__/*" \
             -x "*.dist-info/*" \
-            -x "requirements.txt" \
-            -x "tests/*"
+            -x "requirements.txt"
 
           echo "✅ webhook-handler built successfully"
 
@@ -72,8 +71,7 @@ jobs:
             -x "*.pyc" \
             -x "__pycache__/*" \
             -x "*.dist-info/*" \
-            -x "requirements.txt" \
-            -x "tests/*"
+            -x "requirements.txt"
 
           echo "✅ email-processor built successfully"
 
@@ -90,8 +88,7 @@ jobs:
             -x "*.pyc" \
             -x "__pycache__/*" \
             -x "*.dist-info/*" \
-            -x "requirements.txt" \
-            -x "tests/*"
+            -x "requirements.txt"
 
           echo "✅ inventory-processor built successfully"
 
@@ -108,8 +105,7 @@ jobs:
             -x "*.pyc" \
             -x "__pycache__/*" \
             -x "*.dist-info/*" \
-            -x "requirements.txt" \
-            -x "tests/*"
+            -x "requirements.txt"
 
           echo "✅ database-processor built successfully"
 

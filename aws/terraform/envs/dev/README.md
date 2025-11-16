@@ -241,13 +241,13 @@ cat 3.order-processing/_backend.tf
 
 ```bash
 # Initialize Terraform
-make init e=dev s=1.general
+make init e=dev s=general
 
 # Review plan
-make plan e=dev s=1.general
+make plan e=dev s=general
 
 # Apply infrastructure
-make apply e=dev s=1.general
+make apply e=dev s=general
 
 # Expected outputs:
 # - VPC ID
@@ -261,7 +261,7 @@ make apply e=dev s=1.general
 # Quay về root directory
 cd ../../../..
 
-# Build Lambda packages locally (optional)
+# C1: Build Lambda packages locally (optional)
 cd aws/terraform-dependencies/lambda-function
 
 # Build từng function
@@ -270,28 +270,32 @@ for func in webhook-handler email-processor inventory-processor database-process
   if [ -f requirements.txt ]; then
     pip install -r requirements.txt -t .
   fi
-  zip -r ../${func}.zip . -x "*.pyc" "__pycache__/*" "tests/*"
+  zip -r ../${func}.zip . -x "*.pyc" "__pycache__/*"
   cd ..
 done
 
-# Hoặc sử dụng GitHub Actions để build (recommended)
+# Copy Lambda packages đến service directory
+cd ../terraform/envs/dev/3.order-processing
+cp ../../../../terraform-dependencies/lambda-function/*.zip ./
+
+# C2: chạy script
+cd aws
+chmod +x build-lambda-packages.sh
+./build-lambda-packages.sh dev order-processing
+
 ```
 
 ### Bước 7: Deploy Order Processing Service
 
 ```bash
-# Copy Lambda packages đến service directory
-cd ../terraform/envs/dev/3.order-processing
-cp ../../../../terraform-dependencies/lambda-function/*.zip ./
-
 # Initialize Terraform
-make init e=dev s=3.order-processing
+make init e=dev s=order-processing
 
 # Review plan
-make plan e=dev s=3.order-processing
+make plan e=dev s=order-processing
 
 # Apply infrastructure
-make apply e=dev s=3.order-processing
+make apply e=dev s=order-processing
 
 # Capture outputs
 terraform output > deployment-outputs.txt

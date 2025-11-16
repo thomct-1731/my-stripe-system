@@ -1,17 +1,17 @@
 # Terraform Outputs for API Gateway and Resources
 output "webhook_endpoint_url" {
   description = "API Gateway webhook endpoint URL for Stripe"
-  value       = "${aws_apigatewayv2_api.webhook_api.api_endpoint}/webhook"
+  value       = "${aws_api_gateway_stage.webhook_stage.invoke_url}/webhook"
 }
 
 output "api_gateway_id" {
   description = "ID of API Gateway"
-  value       = aws_apigatewayv2_api.webhook_api.id
+  value       = aws_api_gateway_rest_api.webhook_api.id
 }
 
 output "api_gateway_arn" {
   description = "ARN of API Gateway"
-  value       = aws_apigatewayv2_api.webhook_api.arn
+  value       = aws_api_gateway_rest_api.webhook_api.arn
 }
 
 output "sns_topic_arn" {
@@ -82,10 +82,10 @@ output "cloudwatch_dashboard_url" {
 output "cloudwatch_log_groups" {
   description = "CloudWatch log groups for Lambda functions"
   value = {
-    webhook_handler      = aws_cloudwatch_log_group.webhook_handler.name
-    email_processor      = aws_cloudwatch_log_group.email_processor.name
-    inventory_processor  = aws_cloudwatch_log_group.inventory_processor.name
-    database_processor   = aws_cloudwatch_log_group.database_processor.name
+    webhook_handler     = aws_cloudwatch_log_group.webhook_handler.name
+    email_processor     = aws_cloudwatch_log_group.email_processor.name
+    inventory_processor = aws_cloudwatch_log_group.inventory_processor.name
+    database_processor  = aws_cloudwatch_log_group.database_processor.name
   }
 }
 
@@ -118,7 +118,7 @@ output "alarm_topic_arn" {
 # Summary output for quick reference
 output "deployment_summary" {
   description = "Summary of deployed resources"
-  value = <<-EOT
+  value       = <<-EOT
     ======================================
     Stripe Order Processing System - Deployment Summary
     ======================================
@@ -127,7 +127,7 @@ output "deployment_summary" {
     Region: ${var.region}
 
     1. Webhook Endpoint:
-      ${aws_apigatewayv2_api.webhook_api.api_endpoint}/webhook
+      ${aws_api_gateway_stage.webhook_stage.invoke_url}/webhook
 
     2. Monitoring Dashboard:
       https://${var.region}.console.aws.amazon.com/cloudwatch/home?region=${var.region}#dashboards:name=${aws_cloudwatch_dashboard.order_processing.dashboard_name}

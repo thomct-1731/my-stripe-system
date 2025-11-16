@@ -14,7 +14,7 @@ output "vpc_id" {
   value       = module.vpc.vpc_id
   description = "ID of VPC"
 }
-output "iam_role_lambda_example_arn" {
-  value       = module.iam_role_lambda_example.iam_role_arn
-  description = "ARN of IAM Role Lambda Example"
-}
+# output "iam_role_lambda_example_arn" {
+#   value       = module.iam_role_lambda_example.iam_role_arn
+#   description = "ARN of IAM Role Lambda Example"
+# }

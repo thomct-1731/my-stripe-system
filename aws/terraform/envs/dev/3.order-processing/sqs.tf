@@ -99,11 +99,11 @@ resource "aws_sqs_queue_policy" "email_queue_policy" {
     Id      = "EmailQueuePolicy"
     Statement = [
       {
-        Sid    = "AllowSNSPublish"
-        Effect = "Allow"
+        Sid       = "AllowSNSPublish"
+        Effect    = "Allow"
         Principal = "*"
-        Action   = "sqs:SendMessage"
-        Resource = aws_sqs_queue.email_queue.arn
+        Action    = "sqs:SendMessage"
+        Resource  = aws_sqs_queue.email_queue.arn
         Condition = {
           ArnEquals = {
             "aws:SourceArn" = aws_sns_topic.order_events.arn
@@ -122,11 +122,11 @@ resource "aws_sqs_queue_policy" "inventory_queue_policy" {
     Id      = "InventoryQueuePolicy"
     Statement = [
       {
-        Sid    = "AllowSNSPublish"
-        Effect = "Allow"
+        Sid       = "AllowSNSPublish"
+        Effect    = "Allow"
         Principal = "*"
-        Action   = "sqs:SendMessage"
-        Resource = aws_sqs_queue.inventory_queue.arn
+        Action    = "sqs:SendMessage"
+        Resource  = aws_sqs_queue.inventory_queue.arn
         Condition = {
           ArnEquals = {
             "aws:SourceArn" = aws_sns_topic.order_events.arn
@@ -145,11 +145,11 @@ resource "aws_sqs_queue_policy" "database_queue_policy" {
     Id      = "DatabaseQueuePolicy"
     Statement = [
       {
-        Sid    = "AllowSNSPublish"
-        Effect = "Allow"
+        Sid       = "AllowSNSPublish"
+        Effect    = "Allow"
         Principal = "*"
-        Action   = "sqs:SendMessage"
-        Resource = aws_sqs_queue.database_queue.arn
+        Action    = "sqs:SendMessage"
+        Resource  = aws_sqs_queue.database_queue.arn
         Condition = {
           ArnEquals = {
             "aws:SourceArn" = aws_sns_topic.order_events.arn
