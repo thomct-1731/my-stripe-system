@@ -28,105 +28,58 @@
 
 ```mermaid
 graph TB
-    subgraph "External"
-        Stripe[Stripe Webhook Events]
+    subgraph "Internet"
+        Stripe[Stripe Webhook]
     end
     
-    subgraph "AWS Cloud - Region: ap-northeast-1"
-        subgraph "Public Layer"
-            APIGW[API Gateway<br/>REST API]
+    subgraph "AWS Cloud"
+        subgraph "Public Subnet"
+            APIGW[API Gateway]
         end
         
-        subgraph "Compute Layer"
-            L1[Lambda: Webhook Handler<br/>Runtime: Python 3.9<br/>Timeout: 30s]
-            L2[Lambda: Email Processor<br/>Runtime: Python 3.9<br/>Timeout: 60s]
-            L3[Lambda: Inventory Processor<br/>Runtime: Python 3.9<br/>Timeout: 60s]
-            L4[Lambda: Database Processor<br/>Runtime: Python 3.9<br/>Timeout: 120s]
-        end
-        
-        subgraph "Message Layer"
-            SNS[SNS Topic<br/>order-events]
-            SQS1[SQS Queue<br/>email-queue<br/>Batch: 10 msgs]
-            SQS2[SQS Queue<br/>inventory-queue<br/>Batch: 10 msgs]
-            SQS3[SQS Queue<br/>database-queue<br/>Batch: 10 msgs]
+        subgraph "Private Subnet"
+            L1[Lambda: Webhook Handler]
+            SNS[SNS Topic: Order Events]
             
-            DLQ1[DLQ: email-dlq<br/>Retention: 14 days]
-            DLQ2[DLQ: inventory-dlq<br/>Retention: 14 days]
-            DLQ3[DLQ: database-dlq<br/>Retention: 14 days]
+            subgraph "Processing Queues"
+                SQS1[SQS: Email Queue]
+                SQS2[SQS: Inventory Queue]  
+                SQS3[SQS: Database Queue]
+                DLQ1[DLQ: Email]
+                DLQ2[DLQ: Inventory]
+                DLQ3[DLQ: Database]
+            end
+            
+            L2[Lambda: Email Processor]
+            L3[Lambda: Inventory Processor]
+            L4[Lambda: Database Processor]
+            
+            DDB[DynamoDB: Orders]
+            SES[Amazon SES]
         end
         
-        subgraph "Data Layer"
-            DDB1[DynamoDB Table<br/>orders<br/>Capacity: On-demand]
-            DDB2[DynamoDB Table<br/>processing-logs<br/>TTL: 30 days]
-        end
-        
-        subgraph "Notification Layer"
-            SES[Amazon SES<br/>Email Service]
-        end
-        
-        subgraph "Security & Config"
-            SM[Secrets Manager<br/>- stripe-webhook-secret<br/>- email-config]
-        end
-        
-        subgraph "Monitoring"
-            CW[CloudWatch<br/>Logs & Metrics]
-            CWD[CloudWatch Dashboard<br/>order-processing]
-            CWA[CloudWatch Alarms<br/>- DLQ Alerts<br/>- Lambda Errors<br/>- Queue Depth]
-            SNSA[SNS Topic<br/>alerts]
+        subgraph "Security & Monitoring"
+            SM[Secrets Manager]
+            CW[CloudWatch]
+            CWA[CloudWatch Alarms]
         end
     end
     
-    Stripe -->|POST /webhook| APIGW
+    Stripe --> APIGW
     APIGW --> L1
-    L1 -->|Publish event| SNS
-    L1 -.->|Write| DDB1
-    
-    SNS -->|Filter: order_completed| SQS1
-    SNS -->|Filter: order_completed| SQS2
-    SNS -->|Filter: all events| SQS3
-    
-    SQS1 -->|Trigger| L2
-    SQS2 -->|Trigger| L3
-    SQS3 -->|Trigger| L4
-    
-    L2 -->|Send email| SES
-    L2 -.->|Log| DDB2
-    
-    L3 -.->|Update status| DDB1
-    L3 -.->|Log| DDB2
-    
-    L4 -->|Update records| DDB1
-    L4 -.->|Log| DDB2
-    
-    SQS1 -.->|Failed msgs| DLQ1
-    SQS2 -.->|Failed msgs| DLQ2
-    SQS3 -.->|Failed msgs| DLQ3
-    
-    L1 -.-> CW
-    L2 -.-> CW
-    L3 -.-> CW
-    L4 -.-> CW
-    
-    CW --> CWD
-    DLQ1 --> CWA
-    DLQ2 --> CWA
-    DLQ3 --> CWA
-    CWA --> SNSA
-    
-    L1 -.->|Read secrets| SM
-    L2 -.->|Read config| SM
-    
-    style Stripe fill:#635BFF
-    style APIGW fill:#FF9900
-    style L1 fill:#FF9900
-    style L2 fill:#FF9900
-    style L3 fill:#FF9900
-    style L4 fill:#FF9900
-    style SNS fill:#FF4F8B
-    style SES fill:#DD344C
-    style DDB1 fill:#4053D6
-    style DDB2 fill:#4053D6
-    style CWD fill:#FF4F8B
+    L1 --> SNS
+    SNS --> SQS1
+    SNS --> SQS2
+    SNS --> SQS3
+    SQS1 --> L2
+    SQS2 --> L3
+    SQS3 --> L4
+    L2 --> SES
+    L3 --> DDB
+    L4 --> DDB
+    SQS1 -.-> DLQ1
+    SQS2 -.-> DLQ2
+    SQS3 -.-> DLQ3
 ```
 
 ### Luồng xử lý (Processing Flow)
@@ -159,20 +112,20 @@ graph TB
 
 ### Lambda Functions
 
-| Function | Runtime | Timeout | Memory | Concurrency | Description |
-|----------|---------|---------|--------|-------------|-------------|
-| **webhook-handler** | Python 3.9 | 30s | 256MB | 100 | Nhận webhook từ Stripe, verify signature, publish SNS |
-| **email-processor** | Python 3.9 | 60s | 256MB | 50 | Xử lý gửi email confirmation qua SES |
-| **inventory-processor** | Python 3.9 | 60s | 256MB | 50 | Quản lý inventory allocation/deallocation |
-| **database-processor** | Python 3.9 | 120s | 512MB | 100 | Update order records & processing logs |
+| Function | Runtime | Description |
+|----------|---------|---------|
+| **webhook-handler** | Python 3.9 | Nhận webhook từ Stripe, verify signature, publish SNS |
+| **email-processor** | Python 3.9 | Xử lý gửi email confirmation qua SES |
+| **inventory-processor** | Python 3.9 | Quản lý inventory allocation/deallocation |
+| **database-processor** | Python 3.9 | Update order records & processing logs |
 
 ### Message Queues
 
-| Queue | Visibility Timeout | Max Receive | Batch Size | DLQ |
-|-------|-------------------|-------------|------------|-----|
-| **email-queue** | 300s | 3 | 10 | email-dlq |
-| **inventory-queue** | 300s | 3 | 10 | inventory-dlq |
-| **database-queue** | 300s | 3 | 10 | database-dlq |
+| Queue | DLQ |
+|-------|-----|
+| **email-queue** | email-dlq |
+| **inventory-queue** | inventory-dlq |
+| **database-queue** | database-dlq |
 
 ### DynamoDB Tables
 
