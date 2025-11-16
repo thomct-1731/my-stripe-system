@@ -6,8 +6,8 @@ on:
     paths:
       - 'aws/terraform/**'
       - 'aws/terraform-dependencies/**'
-      - '.github/workflows/deploy-dev.yaml'
-      - '.github/workflows/*.yaml'
+      - '.github/workflows/deploy-dev.yml'
+      - '.github/workflows/*.yml'
   pull_request:
     branches: [develop]
     paths:
@@ -29,7 +29,7 @@ on:
 jobs:
   security-scan:
     name: Security Scan
-    uses: ./.github/workflows/security-scan.yaml
+    uses: ./.github/workflows/security-scan.yml
     with:
       scan-path: '.'
       upload-sarif: true
@@ -38,7 +38,7 @@ jobs:
     name: Plan General Infrastructure
     needs: security-scan
     if: github.event.inputs.skip-plan != 'true'
-    uses: ./.github/workflows/terraform-plan.yaml
+    uses: ./.github/workflows/terraform-plan.yml
     with:
       environment: dev
       service: '1.general'
@@ -52,7 +52,7 @@ jobs:
     name: Plan Order Processing
     needs: security-scan
     if: github.event.inputs.skip-plan != 'true'
-    uses: ./.github/workflows/terraform-plan.yaml
+    uses: ./.github/workflows/terraform-plan.yml
     with:
       environment: dev
       service: '3.order-processing'
@@ -71,7 +71,7 @@ jobs:
       (needs.plan-order-processing.result == 'success' || needs.plan-order-processing.result == 'skipped') &&
       github.event_name == 'push' &&
       github.ref == 'refs/heads/develop'
-    uses: ./.github/workflows/build-lambda.yaml
+    uses: ./.github/workflows/build-lambda.yml
     with:
       python-version: '3.9'
       lambda-source-path: 'aws/terraform-dependencies/lambda-function'
@@ -82,7 +82,7 @@ jobs:
   #   if: |
   #     github.event_name == 'push' &&
   #     github.ref == 'refs/heads/develop'
-  #   uses: ./.github/workflows/terraform-apply.yaml
+  #   uses: ./.github/workflows/terraform-apply.yml
   #   with:
   #     environment: dev
   #     service: '1.general'
@@ -99,7 +99,7 @@ jobs:
     if: |
       github.event_name == 'push' &&
       github.ref == 'refs/heads/develop'
-    uses: ./.github/workflows/terraform-apply.yaml
+    uses: ./.github/workflows/terraform-apply.yml
     with:
       environment: dev
       service: '3.order-processing'
