@@ -1,0 +1,1 @@
+/home/chu.thi.thom@sun-asterisk.com/pr/terraform-projects/my-stripe-system/aws/terraform/envs/dev/_variables.tf

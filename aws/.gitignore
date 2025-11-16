@@ -5,9 +5,6 @@
 *.terraform.lock.hcl
 
 # dev
-terraform/envs/dev/1.general/_variables.tf
-terraform/envs/dev/2.admin/_variables.tf
-terraform/envs/dev/3.order-processing/_variables.tf
 terraform/envs/dev/1.general/.terraform/
 terraform/envs/dev/2.admin/.terraform/
 terraform/envs/dev/3.order-processing/.terraform/
@@ -16,9 +13,6 @@ terraform/envs/dev/2.admin/.terraform.lock.hcl
 terraform/envs/dev/3.order-processing/.terraform.lock.hcl
 
 # stg
-terraform/envs/stg/1.general/_variables.tf
-terraform/envs/stg/2.admin/_variables.tf
-terraform/envs/stg/3.order-processing/_variables.tf
 terraform/envs/stg/1.general/.terraform/
 terraform/envs/stg/2.admin/.terraform/
 terraform/envs/stg/3.order-processing/.terraform/
