@@ -16,7 +16,7 @@ dynamodb = boto3.resource('dynamodb')
 # Environment variables
 EMAIL_CONFIG_SECRET_NAME = os.environ.get('EMAIL_CONFIG_SECRET', '')
 PROCESSING_LOGS_TABLE_NAME = os.environ.get('PROCESSING_LOGS_TABLE', '')
-SES_SENDER_EMAIL = os.environ.get('SES_SENDER_EMAIL', 'noreply@yourdomain.com')
+SES_SENDER_EMAIL = os.environ.get('SES_SENDER_EMAIL', 'noreply@myproject.com')
 
 def get_email_config():
     """Retrieve email configuration from Secrets Manager"""
@@ -24,7 +24,7 @@ def get_email_config():
         # Return default config if no secret configured
         return {
             'from_email': SES_SENDER_EMAIL,
-            'support_email': 'support@yourdomain.com'
+            'support_email': 'support@myproject.com'
         }
 
     try:
@@ -35,7 +35,7 @@ def get_email_config():
         # Return default config on error
         return {
             'from_email': SES_SENDER_EMAIL,
-            'support_email': 'support@yourdomain.com'
+            'support_email': 'support@myproject.com'
         }
 
 def log_processing_event(order_id, event_type, status, details=None):
@@ -134,7 +134,7 @@ def send_order_confirmation_email(order_data, email_config):
                 </div>
                 <div class="footer">
                     <p>This is an automated message. Please do not reply to this email.</p>
-                    <p>For support, contact us at {email_config.get('support_email', 'support@yourdomain.com')}</p>
+                    <p>For support, contact us at {email_config.get('support_email', 'support@myproject.com')}</p>
                 </div>
             </div>
         </body>
@@ -160,7 +160,7 @@ def send_order_confirmation_email(order_data, email_config):
         - You'll receive a shipping confirmation with tracking information
         - Your order will be delivered to your specified address
 
-        If you have any questions about your order, please contact our support team at {email_config.get('support_email', 'support@yourdomain.com')}.
+        If you have any questions about your order, please contact our support team at {email_config.get('support_email', 'support@myproject.com')}.
 
         Thank you for choosing us!
 
@@ -211,7 +211,7 @@ def send_order_confirmation_email(order_data, email_config):
 def send_order_failed_email(order_data, email_config):
     """Send order failure notification to support team"""
     try:
-        support_email = email_config.get('support_email', 'support@yourdomain.com')
+        support_email = email_config.get('support_email', 'support@myproject.com')
         order_id = order_data.get('order_id')
         error = order_data.get('error', 'Unknown error')
 

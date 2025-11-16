@@ -1,6 +1,3 @@
-###################
-# General Initialization
-###################
 terraform {
   required_version = ">= 1.3.9"
 
@@ -15,13 +12,13 @@ terraform {
     }
   }
   backend "s3" {
-    profile        = "my-stripe-system-dev"
-    bucket         = "my-stripe-system-dev-iac-state"
-    key            = "orders/terraform.dev.tfstate"
+    profile        = "myproject-dev"
+    bucket         = "myproject-dev-iac-state"
+    key            = "3.order-processing/terraform.dev.tfstate"
     region         = "ap-northeast-1"
-    /* encrypt        = true
-    kms_key_id     = "arn:aws:kms:ap-northeast-1:<account-id>:key/<key-id>" */
-    dynamodb_table = "my-stripe-system-dev-terraform-state-lock"
+    encrypt        = true
+    kms_key_id     = "arn:aws:kms:ap-northeast-1:<account-id>:key/xxx-xxxx-xxxx"
+    dynamodb_table = "myprojectm-dev-terraform-state-lock"
   }
 }
 
@@ -39,16 +36,3 @@ provider "aws" {
 }
 
 data "aws_caller_identity" "current" {}
-
-###################
-# Remote State References
-###################
-data "terraform_remote_state" "general" {
-  backend = "s3"
-  config = {
-    profile = "${var.project}-${var.env}"
-    bucket  = "${var.project}-${var.env}-iac-state"
-    key     = "general/terraform.${var.env}.tfstate"
-    region  = var.region
-  }
-}

@@ -79,7 +79,7 @@ resource "aws_lambda_function" "email_processor" {
   environment {
     variables = {
       PROCESSING_LOGS_TABLE = aws_dynamodb_table.processing_logs.name
-      FROM_EMAIL           = "noreply@yourdomain.com"  # Update this
+      FROM_EMAIL           = "noreply@myproject.com"
     }
   }
 

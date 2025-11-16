@@ -1,7 +1,7 @@
 variable "project" {
   description = "Name of project"
   type        = string
-  default     = "my-stripe-system"
+  default     = "myproject"
 }
 
 variable "env" {

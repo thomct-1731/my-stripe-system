@@ -1,3 +1,3 @@
-project = "my-stripe-system"
+project = "myproject"
 env     = "dev"
 region  = "ap-northeast-1"

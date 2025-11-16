@@ -36,8 +36,8 @@ resource "aws_secretsmanager_secret" "email_config" {
 resource "aws_secretsmanager_secret_version" "email_config" {
   secret_id = aws_secretsmanager_secret.email_config.id
   secret_string = jsonencode({
-    from_email    = "noreply@ctt.com"
-    support_email = "support@ctt.com"
+    from_email    = "noreply@myproject.com"
+    support_email = "support@myproject.com"
     template_path = "email-templates/"
   })
 

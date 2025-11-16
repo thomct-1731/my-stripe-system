@@ -9,13 +9,13 @@ terraform {
     template = "~> 2.0"
   }
   backend "s3" {
-    profile = "myproject-dev"
-    bucket  = "myproject-dev-iac-state"
-    key     = "general/terraform.dev.tfstate"
-    region  = "ap-northeast-1"
-    /* encrypt        = true
-    kms_key_id     = "arn:aws:kms:ap-northeast-1:<account-id>:key/<key-id>" */
-    dynamodb_table = "myproject-dev-terraform-state-lock"
+    profile        = "myproject-dev"
+    bucket         = "myproject-dev-iac-state"
+    key            = "1.general/terraform.dev.tfstate"
+    region         = "ap-northeast-1"
+    encrypt        = true
+    kms_key_id     = "arn:aws:kms:ap-northeast-1:<account-id>:key/xxx-xxxx-xxxx"
+    dynamodb_table = "myprojectm-dev-terraform-state-lock"
   }
 }
 

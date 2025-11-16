@@ -1,0 +1,136 @@
+name: Build Lambda Functions
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        description: 'Python version to use'
+        required: false
+        type: string
+        default: '3.9'
+      lambda-source-path:
+        description: 'Path to lambda functions source'
+        required: false
+        type: string
+        default: 'aws/terraform-dependencies/lambda-function'
+    outputs:
+      artifact-name:
+        description: 'Name of the uploaded artifact'
+        value: ${{ jobs.build-lambda.outputs.artifact-name }}
+
+jobs:
+  build-lambda:
+    name: Build Lambda Functions
+    runs-on: ubuntu-latest
+
+    outputs:
+      artifact-name: lambda-functions-${{ github.sha }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ inputs.python-version }}
+          cache: 'pip'
+
+      - name: Create build directory
+        run: mkdir -p lambda-packages
+
+      - name: Build Webhook Handler
+        run: |
+          echo "📦 Building webhook-handler..."
+          cd ${{ inputs.lambda-source-path }}/webhook-handler
+
+          # Install dependencies if requirements.txt exists
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt -t . --no-cache-dir
+          fi
+
+          # Create zip package
+          zip -r ../../../lambda-packages/webhook_handler.zip . \
+            -x "*.pyc" \
+            -x "__pycache__/*" \
+            -x "*.dist-info/*" \
+            -x "requirements.txt" \
+            -x "tests/*"
+
+          echo "✅ webhook-handler built successfully"
+
+      - name: Build Email Processor
+        run: |
+          echo "📦 Building email-processor..."
+          cd ${{ inputs.lambda-source-path }}/email-processor
+
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt -t . --no-cache-dir
+          fi
+
+          zip -r ../../../lambda-packages/email_processor.zip . \
+            -x "*.pyc" \
+            -x "__pycache__/*" \
+            -x "*.dist-info/*" \
+            -x "requirements.txt" \
+            -x "tests/*"
+
+          echo "✅ email-processor built successfully"
+
+      - name: Build Inventory Processor
+        run: |
+          echo "📦 Building inventory-processor..."
+          cd ${{ inputs.lambda-source-path }}/inventory-processor
+
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt -t . --no-cache-dir
+          fi
+
+          zip -r ../../../lambda-packages/inventory_processor.zip . \
+            -x "*.pyc" \
+            -x "__pycache__/*" \
+            -x "*.dist-info/*" \
+            -x "requirements.txt" \
+            -x "tests/*"
+
+          echo "✅ inventory-processor built successfully"
+
+      - name: Build Database Processor
+        run: |
+          echo "📦 Building database-processor..."
+          cd ${{ inputs.lambda-source-path }}/database-processor
+
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt -t . --no-cache-dir
+          fi
+
+          zip -r ../../../lambda-packages/database_processor.zip . \
+            -x "*.pyc" \
+            -x "__pycache__/*" \
+            -x "*.dist-info/*" \
+            -x "requirements.txt" \
+            -x "tests/*"
+
+          echo "✅ database-processor built successfully"
+
+      - name: Verify packages
+        run: |
+          echo "## 📦 Lambda Packages Built" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Function | Size |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|------|" >> $GITHUB_STEP_SUMMARY
+
+          for file in lambda-packages/*.zip; do
+            size=$(du -h "$file" | cut -f1)
+            name=$(basename "$file" .zip)
+            echo "| $name | $size |" >> $GITHUB_STEP_SUMMARY
+          done
+
+          ls -lah lambda-packages/
+
+      - name: Upload Lambda artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: lambda-functions-${{ github.sha }}
+          path: lambda-packages/
+          retention-days: 7

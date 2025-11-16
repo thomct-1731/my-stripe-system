@@ -1,0 +1,54 @@
+name: Security Scan
+
+on:
+  workflow_call:
+    inputs:
+      scan-path:
+        description: 'Path to scan'
+        required: false
+        type: string
+        default: '.'
+      upload-sarif:
+        description: 'Upload SARIF to GitHub Security'
+        required: false
+        type: boolean
+        default: true
+
+jobs:
+  security-scan:
+    name: Security Vulnerability Scan
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: ${{ inputs.scan-path }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy results to GitHub Security
+        if: ${{ inputs.upload-sarif && always() }}
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Generate summary report
+        if: always()
+        run: |
+          echo "## 🔒 Security Scan Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ -f trivy-results.sarif ]; then
+            echo "✅ Security scan completed successfully" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Security scan failed" >> $GITHUB_STEP_SUMMARY
+          fi
