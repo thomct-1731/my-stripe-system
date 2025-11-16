@@ -6,12 +6,15 @@ terraform {
       source  = "hashicorp/aws"
       version = ">= 4.0"
     }
-    template = "~> 2.0"
+    archive = {
+      source  = "hashicorp/archive"
+      version = "~> 2.0"
+    }
   }
   backend "s3" {
     profile        = "myproject-stg"
     bucket         = "myproject-stg-iac-state"
-    key            = "1.general/terraform.stg.tfstate"
+    key            = "3.order-processing/terraform.stg.tfstate"
     region         = "ap-northeast-1"
     encrypt        = true
     kms_key_id     = "arn:aws:kms:ap-northeast-1:<account-id>:key/xxx-xxx-xxxx"
@@ -27,6 +30,7 @@ provider "aws" {
     tags = {
       Project     = var.project
       Environment = var.env
+      Service     = "order-processing"
     }
   }
 }

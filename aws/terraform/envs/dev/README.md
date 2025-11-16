@@ -251,8 +251,6 @@ make apply e=dev s=general
 
 # Expected outputs:
 # - VPC ID
-# - IAM roles
-# - Security groups
 ```
 
 ### Bước 6: Build Lambda Functions
