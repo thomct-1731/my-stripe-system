@@ -78,6 +78,8 @@ resource "aws_api_gateway_stage" "webhook_stage" {
     })
   }
 
+  depends_on = [aws_api_gateway_account.main]
+
   tags = {
     Name = "${var.project}-${var.env}-webhook-stage"
   }
