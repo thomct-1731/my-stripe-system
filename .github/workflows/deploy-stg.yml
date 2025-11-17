@@ -30,6 +30,9 @@ permissions:
 jobs:
   security-scan:
     uses: ./.github/workflows/security-scan.yml
+    permissions:
+      contents: read
+      security-events: write
     with:
       scan-path: '.'
 

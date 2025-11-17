@@ -28,10 +28,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ inputs.python-version }}
           cache: 'pip'
@@ -125,8 +125,9 @@ jobs:
           ls -lah lambda-packages/
 
       - name: Upload Lambda artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: lambda-functions-${{ github.sha }}
-          path: lambda-packages/
+          name: lambda-deployment-package
+          path: lambda-packages/*.zip
           retention-days: 7
+          if-no-files-found: error

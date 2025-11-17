@@ -14,6 +14,11 @@ on:
         type: boolean
         default: true
 
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
 jobs:
   security-scan:
     name: Security Vulnerability Scan
@@ -25,7 +30,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
@@ -35,20 +40,41 @@ jobs:
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
+          exit-code: '0'
 
       - name: Upload Trivy results to GitHub Security
         if: ${{ inputs.upload-sarif && always() }}
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: 'trivy-results.sarif'
+          category: 'trivy-security-scan'
 
       - name: Generate summary report
         if: always()
         run: |
           echo "## 🔒 Security Scan Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+
           if [ -f trivy-results.sarif ]; then
-            echo "✅ Security scan completed successfully" >> $GITHUB_STEP_SUMMARY
+            # Parse SARIF results
+            RESULTS=$(cat trivy-results.sarif | jq -r '.runs[0].results | length')
+
+            if [ "$RESULTS" -eq 0 ]; then
+              echo "✅ No security vulnerabilities found" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "⚠️  Found $RESULTS security issues" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "View details in the Security tab:" >> $GITHUB_STEP_SUMMARY
+              echo "https://github.com/${{ github.repository }}/security/code-scanning" >> $GITHUB_STEP_SUMMARY
+            fi
           else
-            echo "❌ Security scan failed" >> $GITHUB_STEP_SUMMARY
+            echo "❌ Security scan failed - SARIF file not found" >> $GITHUB_STEP_SUMMARY
           fi
+
+      - name: Upload scan results as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-scan-results
+          path: trivy-results.sarif
+          retention-days: 30
