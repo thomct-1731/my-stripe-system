@@ -80,19 +80,20 @@ jobs:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-  build-lambda:
-    name: Build Lambda
-    needs: [plan-general, plan-order-processing]
-    if: |
-      always() &&
-      (needs.plan-general.result == 'success' || needs.plan-general.result == 'skipped') &&
-      (needs.plan-order-processing.result == 'success' || needs.plan-order-processing.result == 'skipped') &&
-      github.event_name == 'push' &&
-      github.ref == 'refs/heads/develop'
-    uses: ./.github/workflows/build-lambda.yml
-    with:
-      python-version: '3.9'
-      lambda-source-path: 'aws/terraform-dependencies/lambda-function'
+  # # skip
+  # build-lambda:
+  #   name: Build Lambda
+  #   needs: [plan-general, plan-order-processing]
+  #   if: |
+  #     always() &&
+  #     (needs.plan-general.result == 'success' || needs.plan-general.result == 'skipped') &&
+  #     (needs.plan-order-processing.result == 'success' || needs.plan-order-processing.result == 'skipped') &&
+  #     github.event_name == 'push' &&
+  #     github.ref == 'refs/heads/develop'
+  #   uses: ./.github/workflows/build-lambda.yml
+  #   with:
+  #     python-version: '3.9'
+  #     lambda-source-path: 'aws/terraform-dependencies/lambda-function'
 
   # deploy-general:
   #   name: Deploy General
@@ -112,7 +113,6 @@ jobs:
 
   deploy-order-processing:
     name: Deploy Order Processing
-    needs: [build-lambda]
     # needs: [build-lambda, deploy-general]
     if: |
       github.event_name == 'push' &&
